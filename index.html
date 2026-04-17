@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Hệ Thống Quản Lý Điểm - TIMOLI</title>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #f8f9fa; padding: 20px; }
+        .container { max-width: 900px; margin: auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #1a73e8; text-transform: uppercase; border-bottom: 3px solid #1a73e8; padding-bottom: 10px; }
+        section { margin-bottom: 25px; padding: 15px; border: 1px solid #eee; border-radius: 10px; }
+        h2 { color: #555; font-size: 1.2rem; border-left: 4px solid #1a73e8; padding-left: 10px; margin-bottom: 15px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; }
+        .card { border: 1px solid #ddd; padding: 12px; border-radius: 8px; background: #fff; }
+        .card h3 { margin: 0 0 10px 0; font-size: 16px; color: #1a73e8; }
+        .input-group { margin: 5px 0; display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
+        input[type="number"] { width: 55px; padding: 5px; border: 1px solid #ccc; border-radius: 4px; text-align: center; }
+        select { padding: 5px; border-radius: 4px; border: 1px solid #ccc; }
+        .civil-score-box { background: #fff3e0; text-align: center; padding: 20px; border-radius: 10px; }
+        button { background: #27ae60; color: white; border: none; padding: 15px 40px; border-radius: 30px; cursor: pointer; font-size: 18px; display: block; margin: 20px auto; font-weight: bold; }
+        #result { margin-top: 30px; padding: 25px; background: #e8f4fd; border-radius: 10px; display: none; border: 2px solid #1a73e8; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>HỆ THỐNG QUẢN LÝ ĐIỂM & DANH HIỆU - TIMOLI</h1>
+
+    <section>
+        <h2>I. Các môn tính điểm (Nhập thủ công)</h2>
+        <div class="grid" id="group-diem-so">
+            <script>
+                const monHoc = ["Toán", "Ngữ Văn", "Ngoại Ngữ", "KHTN", "Sử & Địa", "GDCD", "Công Nghệ", "Tin Học"];
+                monHoc.forEach(mon => {
+                    document.write(`
+                        <div class="card mon-diem-so">
+                            <h3>${mon}</h3>
+                            <div class="input-group"><span>HS1 (L1):</span><input type="number" class="h1_1" value="0" min="0" max="10" step="0.1"></div>
+                            <div class="input-group"><span>HS1 (L2):</span><input type="number" class="h1_2" value="0" min="0" max="10" step="0.1"></div>
+                            <div class="input-group"><span>HS2:</span><input type="number" class="h2" value="0" min="0" max="10" step="0.1"></div>
+                            <div class="input-group"><span>HS3:</span><input type="number" class="h3" value="0" min="0" max="10" step="0.1"></div>
+                        </div>
+                    `);
+                });
+            </script>
+        </div>
+    </section>
+
+    <section>
+        <h2>II. Các môn đánh giá (Đạt / Chưa đạt)</h2>
+        <div class="grid">
+            <div class="card"><h3>Thể Dục</h3><select class="check-val"><option value="Đạt">Đạt</option><option value="Chưa Đạt">Chưa Đạt</option></select></div>
+            <div class="card"><h3>Nghệ Thuật</h3><select class="check-val"><option value="Đạt">Đạt</option><option value="Chưa Đạt">Chưa Đạt</option></select></div>
+            <div class="card"><h3>HĐ Trải Nghiệm</h3><select class="check-val"><option value="Đạt">Đạt</option><option value="Chưa Đạt">Chưa Đạt</option></select></div>
+        </div>
+    </section>
+
+    <section class="civil-score-box">
+        <h2>III. Nhập Điểm Văn Minh (0 - 100)</h2>
+        <input type="number" id="civil-score" value="0" min="0" max="100" style="font-size: 20px; width: 100px;">
+    </section>
+
+    <button onclick="calculateAll()">XUẤT KẾT QUẢ TỔNG KẾT</button>
+
+    <div id="result">
+        <h2 style="text-align: center; border: none;">KẾT QUẢ CUỐI NĂM</h2>
+        <p>- ĐTB các môn: <b id="res-dtb">0</b></p>
+        <p>- Hạnh kiểm: <b id="res-conduct">-</b></p>
+        <p style="font-size: 20px; color: red; text-align: center;"><b id="res-honor">DANH HIỆU: ...</b></p>
+    </div>
+</div>
+
+<script>
+    function calculateAll() {
+        let totalAvg = 0;
+        let count = 0;
+        document.querySelectorAll('.mon-diem-so').forEach(card => {
+            let h11 = parseFloat(card.querySelector('.h1_1').value) || 0;
+            let h12 = parseFloat(card.querySelector('.h1_2').value) || 0;
+            let h2 = parseFloat(card.querySelector('.h2').value) || 0;
+            let h3 = parseFloat(card.querySelector('.h3').value) || 0;
+            totalAvg += (h11 + h12 + h2*2 + h3*3) / 7;
+            count++;
+        });
+        let dtb = totalAvg / count;
+
+        let allPassed = true;
+        document.querySelectorAll('.check-val').forEach(s => { if(s.value === "Chưa Đạt") allPassed = false; });
+
+        let civil = parseFloat(document.getElementById('civil-score').value) || 0;
+        let conduct = civil >= 90 ? "Tốt" : civil >= 80 ? "Khá" : civil >= 60 ? "Đạt" : "Chưa đạt";
+
+        let honor = "Chưa đạt danh hiệu";
+        if (dtb >= 9 && conduct === "Tốt" && allPassed) honor = "HỌC SINH XUẤT SẮC";
+        else if (dtb >= 8 && (conduct === "Tốt" || conduct === "Khá") && allPassed) honor = "HỌC SINH GIỎI";
+        else if (dtb >= 6.5 && conduct !== "Chưa đạt" && allPassed) honor = "HỌC SINH KHÁ";
+
+        document.getElementById('res-dtb').innerText = dtb.toFixed(2);
+        document.getElementById('res-conduct').innerText = conduct.toUpperCase();
+        document.getElementById('res-honor').innerText = "DANH HIỆU: " + honor;
+        document.getElementById('result').style.display = 'block';
+    }
+</script>
+</body>
+</html>
