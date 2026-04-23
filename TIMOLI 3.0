@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý Điểm Chi Tiết - Timoli</title>
+    <style>
+        :root {
+            --primary: #2c3e50; --secondary: #3498db; --accent: #8e44ad;
+            --danger: #e74c3c; --success: #27ae60; --bg: #f8f9fa;
+        }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); padding: 20px; display: flex; justify-content: center; }
+        .container { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); max-width: 1000px; width: 100%; }
+        h1 { text-align: center; color: var(--primary); text-transform: uppercase; letter-spacing: 2px; border-bottom: 3px solid var(--secondary); padding-bottom: 10px; }
+        
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-top: 20px; }
+        .card { border: 1px solid #eee; padding: 15px; border-radius: 10px; transition: 0.3s; background: #fff; }
+        .card:hover { box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+        .card h3 { margin: 0 0 10px 0; color: var(--secondary); border-left: 4px solid var(--secondary); padding-left: 10px; }
+        .card.special { border: 2px solid var(--accent); }
+        .card.special h3 { color: var(--accent); border-left-color: var(--accent); }
+
+        .input-group { margin-bottom: 10px; }
+        label { font-size: 0.8rem; font-weight: bold; color: #666; display: block; }
+        input, select { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
+        input:focus { border-color: var(--secondary); outline: none; }
+
+        button { width: 100%; padding: 15px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 1.1rem; cursor: pointer; margin-top: 30px; transition: 0.3s; }
+        button:hover { background: var(--secondary); transform: translateY(-2px); }
+
+        #result-section { margin-top: 40px; display: none; animation: fadeIn 0.5s; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #eee; padding: 12px; text-align: center; }
+        th { background: var(--primary); color: white; }
+        .summary { margin-top: 20px; padding: 20px; background: #f1f2f6; border-radius: 10px; text-align: center; }
+        .advice { margin-top: 20px; padding: 15px; border-radius: 8px; font-size: 0.95rem; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Hệ thống Quản lý Điểm Học tập</h1>
+
+    <div id="input-area">
+        <h2 style="color: var(--secondary);">1. Môn học tính điểm (Hệ 10)</h2>
+        <div class="grid" id="mon-tieu-chuan"></div>
+
+        <h2 style="color: var(--accent); margin-top: 30px;">2. Môn đặc biệt (Thang 1-100)</h2>
+        <div class="grid" id="mon-dac-biet">
+            <div class="card special">
+                <h3>VĂN MINH</h3>
+                <div class="input-group">
+                    <label>Nhập điểm tổng (1 - 100)</label>
+                    <input type="number" id="diem-van-minh" min="0" max="100" value="0" placeholder="VD: 85">
+                </div>
+                <small style="color: #888;">* Hệ thống tự quy đổi sang thang 10 khi tính ĐTB</small>
+            </div>
+        </div>
+
+        <h2 style="color: var(--success); margin-top: 30px;">3. Môn đánh giá (Đạt/Chưa đạt)</h2>
+        <div class="grid" id="mon-danh-gia"></div>
+
+        <button onclick="tinhToan()">XUẤT BẢNG ĐIỂM TỔNG KẾT</button>
+    </div>
+
+    <div id="result-section">
+        <h2 style="text-align: center; color: var(--primary);">KẾT QUẢ TỔNG KẾT CHI TIẾT</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>STT</th>
+                    <th>Môn Học</th>
+                    <th>Điểm (Hệ 10) / Kết quả</th>
+                </tr>
+            </thead>
+            <tbody id="table-body"></tbody>
+        </table>
+
+        <div class="summary">
+            <h2 id="final-dtb">ĐTB CHUNG: 0.0</h2>
+            <h3 id="final-rank">XẾP LOẠI: ...</h3>
+        </div>
+        <div id="advice-area"></div>
+    </div>
+</div>
+
+<script>
+    const monHoc = ["Toán", "Văn", "Anh", "Lý", "Hóa", "Sinh", "Sử", "Địa", "Tin"];
+    const monPhu = ["Thể dục", "Âm nhạc", "Mỹ thuật"];
+
+    // Khởi tạo giao diện
+    const listChinh = document.getElementById('mon-tieu-chuan');
+    monHoc.forEach(mon => {
+        listChinh.innerHTML += `
+            <div class="card">
+                <h3>${mon}</h3>
+                <div class="input-group"><label>HS1 (1)</label><input type="number" step="0.1" class="sc" data-mon="${mon}" data-type="h1_1" value="0"></div>
+                <div class="input-group"><label>HS1 (2)</label><input type="number" step="0.1" class="sc" data-mon="${mon}" data-type="h1_2" value="0"></div>
+                <div class="input-group"><label>Hệ số 2</label><input type="number" step="0.1" class="sc" data-mon="${mon}" data-type="h2" value="0"></div>
+                <div class="input-group"><label>Hệ số 3</label><input type="number" step="0.1" class="sc" data-mon="${mon}" data-type="h3" value="0"></div>
+            </div>`;
+    });
+
+    const listPhu = document.getElementById('mon-danh-gia');
+    monPhu.forEach(mon => {
+        listPhu.innerHTML += `
+            <div class="card">
+                <h3>${mon}</h3>
+                <select class="status" data-mon="${mon}">
+                    <option value="Đạt">Đạt</option>
+                    <option value="Chưa đạt">Chưa đạt</option>
+                </select>
+            </div>`;
+    });
+
+    function tinhToan() {
+        let rows = "";
+        let stt = 1;
+        let tongDiemHe10 = 0;
+
+        // 1. Tính môn hệ 10
+        monHoc.forEach(mon => {
+            const h1_1 = parseFloat(document.querySelector(`[data-mon="${mon}"][data-type="h1_1"]`).value) || 0;
+            const h1_2 = parseFloat(document.querySelector(`[data-mon="${mon}"][data-type="h1_2"]`).value) || 0;
+            const h2 = parseFloat(document.querySelector(`[data-mon="${mon}"][data-type="h2"]`).value) || 0;
+            const h3 = parseFloat(document.querySelector(`[data-mon="${mon}"][data-type="h3"]`).value) || 0;
+            const tb = (h1_1 + h1_2 + h2 * 2 + h3 * 3) / 7;
+            tongDiemHe10 += tb;
+            rows += `<tr><td>${stt++}</td><td>${mon}</td><td>${tb.toFixed(2)}</td></tr>`;
+        });
+
+        // 2. Tính môn Văn minh (Thang 100 -> Thang 10)
+        const diemVMRaw = parseFloat(document.getElementById('diem-van-minh').value) || 0;
+        const diemVMHe10 = diemVMRaw / 10;
+        tongDiemHe10 += diemVMHe10;
+        rows += `<tr style="background: #fdf2ff; font-weight: bold;">
+                    <td>${stt++}</td>
+                    <td>Văn minh (Quy đổi)</td>
+                    <td>${diemVMHe10.toFixed(2)} (${diemVMRaw}/100)</td>
+                </tr>`;
+
+        // 3. Môn phụ
+        monPhu.forEach(mon => {
+            const kq = document.querySelector(`select[data-mon="${mon}"]`).value;
+            rows += `<tr><td>${stt++}</td><td>${mon}</td><td>${kq}</td></tr>`;
+        });
+
+        // Tính TB Chung (Chia cho tổng số môn tính điểm: 9 môn chính + 1 môn Văn minh = 10)
+        const dtbChung = tongDiemHe10 / (monHoc.length + 1);
+
+        // Hiển thị kết quả
+        document.getElementById('table-body').innerHTML = rows;
+        document.getElementById('final-dtb').innerText = `ĐTB CHUNG: ${dtbChung.toFixed(2)}`;
+        
+        let loai = "Chưa đạt";
+        if (dtbChung >= 9) loai = "Xuất sắc";
+        else if (dtbChung >= 8) loai = "Giỏi";
+        else if (dtbChung >= 6.5) loai = "Khá";
+        else if (dtbChung >= 5) loai = "Trung bình";
+        document.getElementById('final-rank').innerText = `XẾP LOẠI: ${loai.toUpperCase()}`;
+
+        // Lời khuyên
+        const adviceArea = document.getElementById('advice-area');
+        if (dtbChung < 5 || diemVMRaw < 50) {
+            adviceArea.innerHTML = `<div class="advice" style="background: #fff5f5; color: #c0392b; border-left: 5px solid #e74c3c;">
+                <strong>LƯU Ý:</strong> Điểm Văn minh hoặc ĐTB chung của bạn đang thấp. Cần chú trọng hơn vào quy tắc ứng xử và kết quả các môn chính!</div>`;
+        } else {
+            adviceArea.innerHTML = `<div class="advice" style="background: #f0fff4; color: #27ae60; border-left: 5px solid #27ae60;">
+                <strong>TUYỆT VỜI:</strong> Bạn đang duy trì phong độ rất tốt. Tiếp tục phát huy nhé!</div>`;
+        }
+
+        document.getElementById('result-section').style.display = 'block';
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    }
+</script>
+</body>
+</html>
